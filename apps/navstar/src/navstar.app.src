@@ -1,0 +1,17 @@
+{application, 'navstar',
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {'navstar_app', []}},
+  {applications,
+   [kernel,
+    stdlib,
+    navstar_rest
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {contributors, []},
+  {licenses, []},
+  {links, []}
+ ]}.
