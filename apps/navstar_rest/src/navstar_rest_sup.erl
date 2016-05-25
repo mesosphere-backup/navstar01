@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
--module('navstar_sup').
+-module(navstar_rest_sup).
 
 -behaviour(supervisor).
 
