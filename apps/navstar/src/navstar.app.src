@@ -6,7 +6,10 @@
   {applications,
    [kernel,
     stdlib,
-    navstar_rest
+    navstar_rest,
+    navstar_dns,
+    lashup,
+    lager
    ]},
   {env,[]},
   {modules, []},

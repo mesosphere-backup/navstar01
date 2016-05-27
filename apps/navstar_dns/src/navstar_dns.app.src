@@ -1,17 +1,13 @@
-{application, 'navstar_rest',
+{application, 'navstar_dns',
     [{description, "An OTP application"},
         {vsn, "0.1.0"},
         {registered, []},
-        {mod, {'navstar_rest_app', []}},
+        {mod, {'navstar_dns_app', []}},
         {applications,
             [
                 kernel,
                 stdlib,
-                lashup,
-                jsx,
-                cowboy,
-                lager,
-                lashup
+                mesos_state
             ]},
         {env,[]},
         {modules, []},
