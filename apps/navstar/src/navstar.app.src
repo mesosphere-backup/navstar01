@@ -8,6 +8,7 @@
     stdlib,
     navstar_rest,
     navstar_dns,
+    navstar_overlay,
     lashup,
     lager
    ]},
