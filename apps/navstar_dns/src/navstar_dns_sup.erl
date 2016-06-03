@@ -33,7 +33,18 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
+    KeyMgr =
+    #{
+        id => navstar_dns_key_mgr,
+        start => {navstar_dns_key_mgr, start_link, []},
+        restart => transient,
+        modules => [navstar_dns_key_mgr],
+        type => worker,
+        shutdown => 5000
+    },
     {ok, {{one_for_all, 5, 10}, [
+
         ?CHILD(navstar_dns_poll_fsm, worker),
-        ?CHILD(navstar_dns_listener, worker)
+        ?CHILD(navstar_dns_listener, worker),
+        KeyMgr
     ]}}.
