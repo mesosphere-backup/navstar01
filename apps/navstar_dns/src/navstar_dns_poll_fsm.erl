@@ -400,10 +400,20 @@ mesos_master_poll() ->
             {error, Error}
     end.
 
+%%
+%% Tasks IPs are identified with up to three DNS A records: agentip, containerip and autoip.
+%% The autoip is derived from the containerip or agentip.  The autoip is defined as matching
+%% the containerip, if and only if a containerip value exists, otherwise autoip's value will
+%% match the agentip value.
+%%
 
 -spec(task_ip_by_agent(task()) -> {binary(), inet:ip4_address()}).
 task_ip_by_agent(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}) ->
     {<<"agentip">>, IP}.
+
+-spec(task_ip_by_agent_auto(task()) -> {binary(), inet:ip4_address()}).
+task_ip_by_agent_auto(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}) ->
+    {<<"autoip">>, IP}.
 
 -spec(task_ip_by_network_infos(task()) -> {binary(), inet:ip4_address()}).
 task_ip_by_network_infos(
@@ -411,6 +421,13 @@ task_ip_by_network_infos(
     [#network_info{ip_addresses = IPAddresses}|_] = NetworkInfos,
     [#ip_address{ip_address = IP}|_] = IPAddresses,
     {<<"containerip">>, IP}.
+
+-spec(task_ip_by_container_auto(task()) -> {binary(), inet:ip4_address()}).
+task_ip_by_container_auto(
+    #task{statuses = [#task_status{container_status = #container_status{network_infos = NetworkInfos}}|_]}) ->
+    [#network_info{ip_addresses = IPAddresses}|_] = NetworkInfos,
+    [#ip_address{ip_address = IP}|_] = IPAddresses,
+    {<<"autoip">>, IP}.
 
 %% Creates the zone:
 %% .mesos.thisdcos.directory
@@ -437,10 +454,11 @@ add_task_record(Task =
         when is_list(NetworkInfos) ->
 
     Acc1 = add_task_record(fun task_ip_by_agent/1, Task, Acc0),
-    add_task_record(fun task_ip_by_network_infos/1, Task, Acc1);
+    Acc2 = add_task_record(fun task_ip_by_network_infos/1, Task, Acc1),
+    add_task_record(fun task_ip_by_container_auto/1, Task, Acc2);
 add_task_record(Task, Acc0) ->
-    add_task_record(fun task_ip_by_agent/1, Task, Acc0).
-
+    Acc1 = add_task_record(fun task_ip_by_agent/1, Task, Acc0),
+    add_task_record(fun task_ip_by_agent_auto/1, Task, Acc1).
 
 -spec(add_task_record(ip_resolver(), task(), [dns:dns_rr()]) -> [dns:dns_rr()]).
 add_task_record(IPResolver, Task = #task{discovery = undefined}, Acc) ->
