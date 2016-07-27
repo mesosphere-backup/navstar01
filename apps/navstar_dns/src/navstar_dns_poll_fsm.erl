@@ -419,7 +419,7 @@ mesos_master_poll() ->
 task_ip_by_agent(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}) ->
     {<<"agentip">>, IP}.
 
--spec(task_ip_by_agent(task(),binary()) -> {binary(), inet:ip4_address()}).
+-spec(task_ip_by_agent(task(), binary()) -> {binary(), inet:ip4_address()}).
 task_ip_by_agent(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}, Label) ->
     {Label, IP}.
 
@@ -430,7 +430,7 @@ task_ip_by_network_infos(
     [#ip_address{ip_address = IP}|_] = IPAddresses,
     {<<"containerip">>, IP}.
 
--spec(task_ip_by_network_infos(task(),binary()) -> {binary(), inet:ip4_address()}).
+-spec(task_ip_by_network_infos(task(), binary()) -> {binary(), inet:ip4_address()}).
 task_ip_by_network_infos(
     #task{statuses = [#task_status{container_status = #container_status{network_infos = NetworkInfos}}|_]}, Label) ->
     [#network_info{ip_addresses = IPAddresses}|_] = NetworkInfos,
