@@ -11,6 +11,7 @@
 
 -behaviour(gen_fsm).
 
+-compile(export_all).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -404,17 +405,24 @@ mesos_master_poll() ->
 %%
 %% Tasks IPs are identified with up to three DNS A records: agentip, containerip and autoip.
 %% The autoip is derived from the containerip or agentip.  The autoip is defined as matching
-%% the containerip, if and only if a containerip value exists, otherwise autoip's value will
-%% match the agentip value.
+%% the containerip, if it is reachable.  A containerip is reachable if port mappings don't exist
+%% and the containerip exists.
+%%
+%% Pseudo Code
+%%
+%% if If task.network_info.ip_address AND NOT task.port_mappings
+%%     return task.networkinfo.ip_address
+%% else
+%%     return agent_ip
 %%
 
 -spec(task_ip_by_agent(task()) -> {binary(), inet:ip4_address()}).
 task_ip_by_agent(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}) ->
     {<<"agentip">>, IP}.
 
--spec(task_ip_by_agent_auto(task()) -> {binary(), inet:ip4_address()}).
-task_ip_by_agent_auto(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}) ->
-    {<<"autoip">>, IP}.
+-spec(task_ip_by_agent(task(),binary()) -> {binary(), inet:ip4_address()}).
+task_ip_by_agent(_Task = #task{slave = #slave{pid = #libprocess_pid{ip = IP}}}, Label) ->
+    {Label, IP}.
 
 -spec(task_ip_by_network_infos(task()) -> {binary(), inet:ip4_address()}).
 task_ip_by_network_infos(
@@ -423,12 +431,22 @@ task_ip_by_network_infos(
     [#ip_address{ip_address = IP}|_] = IPAddresses,
     {<<"containerip">>, IP}.
 
--spec(task_ip_by_container_auto(task()) -> {binary(), inet:ip4_address()}).
-task_ip_by_container_auto(
-    #task{statuses = [#task_status{container_status = #container_status{network_infos = NetworkInfos}}|_]}) ->
+-spec(task_ip_by_network_infos(task(),binary()) -> {binary(), inet:ip4_address()}).
+task_ip_by_network_infos(
+    #task{statuses = [#task_status{container_status = #container_status{network_infos = NetworkInfos}}|_]}, Label) ->
     [#network_info{ip_addresses = IPAddresses}|_] = NetworkInfos,
     [#ip_address{ip_address = IP}|_] = IPAddresses,
-    {<<"autoip">>, IP}.
+    {Label, IP};
+task_ip_by_network_infos(Task, Label) ->
+   task_ip_by_agent(Task, Label).
+
+-spec(task_ip_autoip(task()) -> {binary(), inet:ip4_address()}).
+task_ip_autoip(Task = #task{container = #container{type = docker, docker = #docker{port_mappings = []}}}) ->
+    task_ip_by_agent(Task, <<"autoip">>);
+task_ip_autoip(Task) ->
+    task_ip_by_network_infos(Task, <<"autoip">>).
+
+
 
 %% Creates the zone:
 %% .mesos.thisdcos.directory
@@ -456,10 +474,10 @@ add_task_record(Task =
 
     Acc1 = add_task_record(fun task_ip_by_agent/1, Task, Acc0),
     Acc2 = add_task_record(fun task_ip_by_network_infos/1, Task, Acc1),
-    add_task_record(fun task_ip_by_container_auto/1, Task, Acc2);
+    add_task_record(fun task_ip_autoip/1, Task, Acc2);
 add_task_record(Task, Acc0) ->
     Acc1 = add_task_record(fun task_ip_by_agent/1, Task, Acc0),
-    add_task_record(fun task_ip_by_agent_auto/1, Task, Acc1).
+    add_task_record(fun task_ip_autoip/1, Task, Acc1).
 
 -spec(add_task_record(ip_resolver(), task(), [dns:dns_rr()]) -> [dns:dns_rr()]).
 add_task_record(IPResolver, Task = #task{discovery = undefined}, Acc) ->
