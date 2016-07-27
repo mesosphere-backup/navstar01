@@ -11,7 +11,6 @@
 
 -behaviour(gen_fsm).
 
--compile(export_all).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
