@@ -758,7 +758,19 @@ zone_records_agentip_test() ->
     {ok, ParsedBody} = mesos_state_client:parse_response(Data),
     Tasks = mesos_state_client:tasks(ParsedBody),
     AgentIPList = [navstar_dns_poll_fsm:task_ip_by_agent(X) || X <- Tasks],
-    ?debugFmt("Agentip List: ~p", [AgentIPList]).
+    %% ?debugFmt("Agentip List: ~p", [AgentIPList]).
+    ?assertEqual(expected_agentip_list(), AgentIPList).
+
+expected_agentip_list() ->
+    [{<<"agentip">>,{1,2,3,12}},
+    {<<"agentip">>,{1,2,3,11}},
+    {<<"agentip">>,{1,2,3,11}},
+    {<<"agentip">>,{1,2,3,11}},
+    {<<"agentip">>,{1,2,3,12}},
+    {<<"agentip">>,{1,2,3,11}},
+    {<<"agentip">>,{1,2,3,11}},
+    {<<"agentip">>,{1,2,3,11}},
+    {<<"agentip">>,{1,2,3,11}}].
 
 zone_records_autoip_test() ->
     DataDir = code:priv_dir(navstar_dns),
@@ -767,7 +779,19 @@ zone_records_autoip_test() ->
     {ok, ParsedBody} = mesos_state_client:parse_response(Data),
     Tasks = mesos_state_client:tasks(ParsedBody),
     AutoIPList = [navstar_dns_poll_fsm:task_ip_autoip(X) || X <- Tasks],
-    ?debugFmt("Autoip List: ~p", [AutoIPList]).
+    %% ?debugFmt("Autoip List: ~p", [AutoIPList]).
+    ?assertEqual(expected_autoip_list(), AutoIPList).
+
+expected_autoip_list() ->
+    [{<<"autoip">>,{1,2,3,12}},
+    {<<"autoip">>,{1,2,3,11}},
+    {<<"autoip">>,{1,2,3,11}},
+    {<<"autoip">>,{1,2,3,11}},
+    {<<"autoip">>,{1,2,3,12}},
+    {<<"autoip">>,{1,2,3,11}},
+    {<<"autoip">>,{1,2,3,11}},
+    {<<"autoip">>,{1,2,3,11}},
+    {<<"autoip">>,{1,2,3,11}}].
 
 zone_records_state3_test() ->
     DataDir = code:priv_dir(navstar_dns),
