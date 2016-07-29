@@ -735,7 +735,7 @@ zone_records_single_agentip_test() ->
     Tasks = mesos_state_client:tasks(ParsedBody),
     [A|_T] = Tasks,
     Result = navstar_dns_poll_fsm:task_ip_by_agent(A),
-    ExpectedResult = {<<"agentip">>,{1,2,3,12}},
+    ExpectedResult = {<<"agentip">>, {1, 2, 3, 12}},
     ?assertEqual(ExpectedResult, Result).
 
 zone_records_single_autoip_test() ->
@@ -746,7 +746,7 @@ zone_records_single_autoip_test() ->
     Tasks = mesos_state_client:tasks(ParsedBody),
     [A|_T] = Tasks,
     Result = navstar_dns_poll_fsm:task_ip_autoip(A),
-    ExpectedResult = {<<"autoip">>,{1,2,3,12}},
+    ExpectedResult = {<<"autoip">>, {1, 2, 3, 12}},
     ?assertEqual(ExpectedResult, Result).
 
 zone_records_agentip_test() ->
