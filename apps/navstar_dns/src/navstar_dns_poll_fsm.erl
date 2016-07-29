@@ -762,15 +762,15 @@ zone_records_agentip_test() ->
     ?assertEqual(expected_agentip_list(), AgentIPList).
 
 expected_agentip_list() ->
-    [{<<"agentip">>,{1,2,3,12}},
-    {<<"agentip">>,{1,2,3,11}},
-    {<<"agentip">>,{1,2,3,11}},
-    {<<"agentip">>,{1,2,3,11}},
-    {<<"agentip">>,{1,2,3,12}},
-    {<<"agentip">>,{1,2,3,11}},
-    {<<"agentip">>,{1,2,3,11}},
-    {<<"agentip">>,{1,2,3,11}},
-    {<<"agentip">>,{1,2,3,11}}].
+    [{<<"agentip">>, {1, 2, 3, 12}},
+    {<<"agentip">>, {1, 2, 3, 11}},
+    {<<"agentip">>, {1, 2, 3, 11}},
+    {<<"agentip">>, {1, 2, 3, 11}},
+    {<<"agentip">>, {1, 2, 3, 12}},
+    {<<"agentip">>, {1, 2, 3, 11}},
+    {<<"agentip">>, {1, 2, 3, 11}},
+    {<<"agentip">>, {1, 2, 3, 11}},
+    {<<"agentip">>, {1, 2, 3, 11}}].
 
 zone_records_autoip_test() ->
     DataDir = code:priv_dir(navstar_dns),
@@ -783,15 +783,15 @@ zone_records_autoip_test() ->
     ?assertEqual(expected_autoip_list(), AutoIPList).
 
 expected_autoip_list() ->
-    [{<<"autoip">>,{1,2,3,12}},
-    {<<"autoip">>,{1,2,3,11}},
-    {<<"autoip">>,{1,2,3,11}},
-    {<<"autoip">>,{1,2,3,11}},
-    {<<"autoip">>,{1,2,3,12}},
-    {<<"autoip">>,{1,2,3,11}},
-    {<<"autoip">>,{1,2,3,11}},
-    {<<"autoip">>,{1,2,3,11}},
-    {<<"autoip">>,{1,2,3,11}}].
+    [{<<"autoip">>, {1, 2, 3, 12}},
+    {<<"autoip">>, {1, 2, 3, 11}},
+    {<<"autoip">>, {1, 2, 3, 11}},
+    {<<"autoip">>, {1, 2, 3, 11}},
+    {<<"autoip">>, {1, 2, 3, 12}},
+    {<<"autoip">>, {1, 2, 3, 11}},
+    {<<"autoip">>, {1, 2, 3, 11}},
+    {<<"autoip">>, {1, 2, 3, 11}},
+    {<<"autoip">>, {1, 2, 3, 11}}].
 
 zone_records_state3_test() ->
     DataDir = code:priv_dir(navstar_dns),
