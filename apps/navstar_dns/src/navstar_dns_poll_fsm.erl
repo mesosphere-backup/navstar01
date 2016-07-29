@@ -11,7 +11,6 @@
 
 -behaviour(gen_fsm).
 
-
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
@@ -728,6 +727,45 @@ zone_records_fake_test() ->
     Zone = navstar_dns_poll_fsm:build_zone(ParsedBody),
     ?debugFmt("Zone: ~p", [Zone]).
 
+zone_records_single_agentip_test() ->
+    DataDir = code:priv_dir(navstar_dns),
+    Filename = filename:join(DataDir, "fake.json"),
+    {ok, Data} = file:read_file(Filename),
+    {ok, ParsedBody} = mesos_state_client:parse_response(Data),
+    Tasks = mesos_state_client:tasks(ParsedBody),
+    [A|_T] = Tasks,
+    Result = navstar_dns_poll_fsm:task_ip_by_agent(A),
+    ExpectedResult = {<<"agentip">>,{1,2,3,12}},
+    ?assertEqual(ExpectedResult, Result).
+
+zone_records_single_autoip_test() ->
+    DataDir = code:priv_dir(navstar_dns),
+    Filename = filename:join(DataDir, "fake.json"),
+    {ok, Data} = file:read_file(Filename),
+    {ok, ParsedBody} = mesos_state_client:parse_response(Data),
+    Tasks = mesos_state_client:tasks(ParsedBody),
+    [A|_T] = Tasks,
+    Result = navstar_dns_poll_fsm:task_ip_autoip(A),
+    ExpectedResult = {<<"autoip">>,{1,2,3,12}},
+    ?assertEqual(ExpectedResult, Result).
+
+zone_records_agentip_test() ->
+    DataDir = code:priv_dir(navstar_dns),
+    Filename = filename:join(DataDir, "fake.json"),
+    {ok, Data} = file:read_file(Filename),
+    {ok, ParsedBody} = mesos_state_client:parse_response(Data),
+    Tasks = mesos_state_client:tasks(ParsedBody),
+    AgentIPList = [navstar_dns_poll_fsm:task_ip_by_agent(X) || X <- Tasks],
+    ?debugFmt("Agentip List: ~p", [AgentIPList]).
+
+zone_records_autoip_test() ->
+    DataDir = code:priv_dir(navstar_dns),
+    Filename = filename:join(DataDir, "fake.json"),
+    {ok, Data} = file:read_file(Filename),
+    {ok, ParsedBody} = mesos_state_client:parse_response(Data),
+    Tasks = mesos_state_client:tasks(ParsedBody),
+    AutoIPList = [navstar_dns_poll_fsm:task_ip_autoip(X) || X <- Tasks],
+    ?debugFmt("Autoip List: ~p", [AutoIPList]).
 
 zone_records_state3_test() ->
     DataDir = code:priv_dir(navstar_dns),
@@ -786,4 +824,5 @@ zone_records_mesos_dns_test() ->
             {dns_rr, <<"slave.mesos.thisdcos.directory">>, 1, 1, 5,
                 {dns_rrdata_a, {10, 0, 5, 155}}}],
     ?assertEqual(ExpectedRecords, Records).
+
 -endif.
