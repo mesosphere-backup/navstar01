@@ -218,7 +218,7 @@ create_zk_key(Pid) ->
     end.
 
 do_create_zk_key(Pid) ->
-    KeyPair = #{public := _, secret := _} = enacl:sign_keypair(),
+    KeyPair = #{public := _, secret := _} = brine:new_keypair(),
     Data = jsx:encode(KeyPair),
     case erlzk:create(Pid, ?ZOOKEEPER_PATH, Data) of
         {ok, _} ->
