@@ -218,15 +218,21 @@ create_zk_key(Pid) ->
     end.
 
 do_create_zk_key(Pid) ->
-    KeyPair = #{public := _, secret := _} = brine:new_keypair(),
-    Data = jsx:encode(KeyPair),
-    case erlzk:create(Pid, ?ZOOKEEPER_PATH, Data) of
-        {ok, _} ->
-            push_data_to_lashup(KeyPair);
-        Else ->
-            %% This can actually just be a side effect of a concurrency violation
-            %% Rather than trying to handle all the cases, we just try again later
-            lager:warning("Unable to create zknode: ~p", [Else]),
+    case brine:new_keypair() of
+        KeyPair = #{public := _, secret := _} ->
+            Data = jsx:encode(KeyPair),
+            case erlzk:create(Pid, ?ZOOKEEPER_PATH, Data) of
+                {ok, _} ->
+                    push_data_to_lashup(KeyPair),
+                    true;
+                Else ->
+                    %% This can actually just be a side effect of a concurrency violation
+                    %% Rather than trying to handle all the cases, we just try again later
+                    lager:warning("Unable to create zknode: ~p", [Else]),
+                    false
+            end;
+        Error ->
+            lager:warning("Unable to create keypair: ~p", [Error]),
             false
     end.
 
