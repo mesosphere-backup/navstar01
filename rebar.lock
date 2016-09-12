@@ -4,7 +4,7 @@
   1},
  {<<"brine">>,
   {git,"https://github.com/drewkerrigan/brine.git",
-       {ref,"bba05290ee38ea7666b79a21c903c9453959194a"}},
+       {ref,"66d367f3e75d3955849dc4fdd4cce0b5db4bbee4"}},
   0},
  {<<"cowboy">>,
   {git,"git://github.com/ninenines/cowboy.git",
