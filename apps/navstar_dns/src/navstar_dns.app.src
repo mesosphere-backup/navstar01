@@ -10,7 +10,7 @@
                 mesos_state,
                 lashup,
                 jsx,
-                enacl,
+                brine,
                 erlzk,
                 ssl,
                 crypto
