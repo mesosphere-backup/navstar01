@@ -44,7 +44,7 @@ init([]) ->
     },
     {ok, {{one_for_one, 5, 10}, [
 
-        ?CHILD(navstar_dns_poll_fsm, worker),
+        ?CHILD(navstar_dns_poll_server, worker),
         ?CHILD(navstar_dns_listener, worker),
         KeyMgr
     ]}}.
