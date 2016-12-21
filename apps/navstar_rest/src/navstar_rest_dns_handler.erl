@@ -35,6 +35,8 @@ content_types_accepted(Req, State) ->
         {<<"application/json">>, update_zone}
     ], Req, State}.
 
+%% POST handler
+-spec(update_zone(Req::cowboy_req:req(), State::any()) -> {<<>>, Req2::cowboy_req:req(), State::any()}).
 update_zone(Req, State) ->
     <<"POST">> = cowboy_req:method(Req),
     true = cowboy_req:has_body(Req),
@@ -55,12 +57,16 @@ update_zone(Req, State) ->
            end,
     {<<>>, Req2, State}.
 
+-spec(update_zone(ZoneName::binary(), riak_dt_vclock:vclock(), Body::binary()) ->
+      {ok, no_change} | {error, Reason::term()} | {ok, riak_dt_map:value()}).
 update_zone(ZoneName, Clock, Body0) ->
     Body1 = jsx:decode(Body0, [return_maps, {labels, atom}]),
     Records = maps:get(records, Body1),
     ParsedRecords = lists:map(fun map_to_record/1, Records),
     push_zone_to_lashup(ZoneName, Clock, ParsedRecords).
 
+-spec(push_zone_to_lashup(binary(), riak_dt_vclock:vclock(), list()) ->
+      {ok, no_change} | {error, Reason::term()} | {ok, riak_dt_map:value()}).
 push_zone_to_lashup(ZoneName, Clock, NewRecords) ->
     ZoneKey = [navstar, dns, zones, ZoneName],
     {OriginalMap, VClock} = lashup_kv:value2(ZoneKey),
@@ -74,6 +80,8 @@ push_zone_to_lashup(ZoneName, Clock, NewRecords) ->
            push_zone_to_lashup(ZoneKey, Clock, OldRecords1, NewRecords)
     end.
 
+-spec(push_zone_to_lashup(lashup_kv:key(), riak_dt_vclock:vclock(), list(), list()) ->
+      {ok, no_change} | {error, Reason::term()} | {ok, riak_dt_map:value()}).
 push_zone_to_lashup(ZoneKey, Clock, OldRecords, NewRecords) ->
     case ops(OldRecords, NewRecords) of
         [] ->
@@ -82,6 +90,7 @@ push_zone_to_lashup(ZoneKey, Clock, OldRecords, NewRecords) ->
             lashup_kv:request_op(ZoneKey, Clock, {update, Ops})
     end.
 
+-spec(ops(OldRecords::list(), NewRecords::list()) -> riak_dt_map:map_op()).
 ops(OldRecords, NewRecords) ->
     RecordsToDelete = ordsets:subtract(OldRecords, NewRecords),
     RecordsToAdd = ordsets:subtract(NewRecords, OldRecords),
@@ -93,14 +102,17 @@ ops(OldRecords, NewRecords) ->
             [{update, ?RECORDS_FIELD, {add_all, RecordsToAdd}}|Ops0]
     end.
 
+-spec(delete_op(Record::term(), Acc0::list()) -> riak_dt_map:map_op()).
 delete_op(Record, Acc0) ->
     Op = {update, ?RECORDS_FIELD, {remove, Record}},
     [Op|Acc0].
 
+%% GET handler
 to_json(Req, State) ->
     [Zone] = cowboy_req:path_info(Req),
     fetch_zone(Zone, Req, State).
 
+-spec(fetch_zone(binary(), cowboy_req:req(), any()) -> {<<>>, cowboy_req:req(), any()}).
 fetch_zone(Zone, Req, State) ->
     {Value0, Clock} = lashup_kv:value2([navstar, dns, zones, Zone]),
     [Value1] = lists:map(fun encode_value/1, Value0),
@@ -110,9 +122,11 @@ fetch_zone(Zone, Req, State) ->
     ], Body, Req),
     {<<>>, Req2, State}.
 
+-spec(encode_value({tuple(), Value::list()}) -> map()).
 encode_value({{Name, riak_dt_orswot}, Value}) ->
     #{Name => lists:map(fun encode_value2/1, Value)}.
 
+-spec(encode_value2(#dns_rr{}) -> map()).
 encode_value2(Record0 = #dns_rr{data = Data}) ->
     DataMap = record_to_map(Data),
     Record1 = Record0#dns_rr{data = DataMap},
