@@ -72,8 +72,13 @@ push_zone_to_lashup(ZoneName, Clock, NewRecords) ->
     {OriginalMap, VClock} = lashup_kv:value2(ZoneKey),
     case {Clock, VClock} of
         {_, []} ->
-           push_zone_to_lashup(ZoneKey, Clock, [], NewRecords);
-        {[], _} -> {error, "To modify existing record, Clock header is required"};
+           push_zone_to_lashup(ZoneKey, undefined, [], NewRecords);
+        {"overwrite", _} ->
+           {_, OldRecords0} = lists:keyfind(?RECORDS_FIELD, 1, OriginalMap),
+           OldRecords1 = lists:usort(OldRecords0),
+           push_zone_to_lashup(ZoneKey, undefined, OldRecords1, NewRecords);
+        {[], _} ->
+           {error, "To modify existing record, Clock header is required"};
         {_, _} ->
            {_, OldRecords0} = lists:keyfind(?RECORDS_FIELD, 1, OriginalMap),
            OldRecords1 = lists:usort(OldRecords0),
@@ -134,6 +139,8 @@ encode_value2(Record0 = #dns_rr{data = Data}) ->
 
 record_to_map(Record = #dns_rrdata_a{}) ->
     maps:from_list(lists:zip(record_info(fields, dns_rrdata_a), tl(tuple_to_list(Record))));
+record_to_map(Record = #dns_rrdata_cname{}) ->
+    maps:from_list(lists:zip(record_info(fields, dns_rrdata_cname), tl(tuple_to_list(Record))));
 record_to_map(Record = #dns_rrdata_ns{}) ->
     maps:from_list(lists:zip(record_info(fields, dns_rrdata_ns), tl(tuple_to_list(Record))));
 record_to_map(Record = #dns_rrdata_soa{}) ->
@@ -151,6 +158,8 @@ map_to_record(?DNS_TYPE_A, #{ip := IP}) when is_binary(IP)->
     IPStr = binary_to_list(IP),
     {ok, ParsedIP} = inet:parse_ipv4_address(IPStr),
     #dns_rrdata_a{ip = ParsedIP};
+map_to_record(?DNS_TYPE_CNAME, #{dname := Dname}) ->
+    #dns_rrdata_cname{dname = Dname};
 map_to_record(?DNS_TYPE_NS, #{dname := Dname}) ->
     #dns_rrdata_ns{dname = Dname};
 map_to_record(?DNS_TYPE_SOA, #{mname := Mname, rname := Rname, serial := Serial, refresh := Refresh, retry := Retry,
