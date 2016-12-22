@@ -51,6 +51,9 @@ edoc:
 rel:
 	${REBAR} as prod release
 
+ee:
+	${REBAR} as ee release
+
 stage:
 	${REBAR} release -d
 
