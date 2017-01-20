@@ -97,7 +97,7 @@
   0},
  {<<"minuteman18">>,
   {git,"https://github.com/mesosphere/minuteman18.git",
-       {ref,"70cb0464e0e4ba3d2e5872f072fe018cf47de165"}},
+       {ref,"965d9df2e4f88f23946e103ba4865acaf1133144"}},
   0},
  {<<"mochiweb">>,{pkg,<<"mochiweb">>,<<"2.12.2">>},2},
  {<<"parse_trans">>,
