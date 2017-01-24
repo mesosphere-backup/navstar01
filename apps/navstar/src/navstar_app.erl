@@ -36,14 +36,11 @@ stop(_State) ->
 
 maybe_start_minuteman() ->
     LB = application:get_env(navstar, enable_lb, false),
-    IPVS = application:get_env(navstar, enable_ipvs, false),
-    case {LB,IPVS}  of
-        {false, _} ->
+    case LB  of
+        false ->
             ok;
-        {true,true} -> %% minuteman with ipvs
+        _ ->
             {ok, _} = application:ensure_all_started(minuteman);
-        _ -> %% stable minuteman
-            {ok, _} = application:ensure_all_started(minuteman18)
     end.
 
 maybe_add_master() ->
