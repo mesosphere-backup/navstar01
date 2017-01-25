@@ -35,11 +35,15 @@ stop(_State) ->
 %%====================================================================
 
 maybe_start_minuteman() ->
-    case application:get_env(navstar, enable_lb, false) of
-        false ->
+    LB = application:get_env(navstar, enable_lb, false),
+    IPVS = application:get_env(navstar, enable_ipvs, false),
+    case {LB,IPVS}  of
+        {false,_} ->
             ok;
-        true ->
-            {ok, _} = application:ensure_all_started(minuteman)
+        {true,true} ->
+            {ok, _} = application:ensure_all_started(minuteman);
+        _ ->
+            {ok, _} = application:ensure_all_started(minuteman18)
     end.
 
 maybe_add_master() ->
