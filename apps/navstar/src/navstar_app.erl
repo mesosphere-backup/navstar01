@@ -10,6 +10,10 @@
 
 -define(MASTERS_KEY, {masters, riak_dt_orswot}).
 
+-ifndef(ENABLE_DTE).
+-define(ENABLE_DTE, false).
+-endif.
+
 %% Application callbacks
 -export([
     start/2,
@@ -24,6 +28,7 @@ start(_StartType, _StartArgs) ->
     load_config(),
     maybe_add_master(),
     maybe_start_minuteman(),
+    maybe_start_dte(),
     'navstar_sup':start_link().
 
 %%--------------------------------------------------------------------
@@ -33,6 +38,14 @@ stop(_State) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+maybe_start_dte() ->
+    case ?ENABLE_DTE of
+        false ->
+            ok;
+        true ->
+            {ok, _} = application:ensure_all_started(dte)
+    end.
+
 
 maybe_start_minuteman() ->
     case application:get_env(navstar, enable_lb, false) of
