@@ -9,6 +9,7 @@
     navstar_rest,
     navstar_dns,
     navstar_overlay,
+    navstar_l4lb,
     lashup,
     lager
    ]},
