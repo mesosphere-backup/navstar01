@@ -6,12 +6,12 @@
 %%% @end
 %%% Created : 27. Sep 2016 5:55 PM
 %%%-------------------------------------------------------------------
--module(minuteman_netlink_SUITE).
+-module(navstar_l4lb_netlink_SUITE).
 -author("sdhillon").
 
 
 -include_lib("gen_netlink/include/netlink.hrl").
--include("minuteman.hrl").
+-include("navstar_l4lb.hrl").
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -41,7 +41,7 @@ init_per_testcase(_, _, _) ->
     {skip, "Not running as root"}.
 
 end_per_testcase(_, _Config) ->
-    os:cmd("ip link del minuteman").
+    os:cmd("ip link del navstar_l4lb").
 
 enc_generic(_Config) ->
     Pid = 0,
@@ -58,11 +58,11 @@ getfamily(_Config) ->
 
 test_ipvs_mgr(_Config) ->
     %% Reset IPVS State
-    {ok, Pid} = minuteman_ipvs_mgr:start_link(),
+    {ok, Pid} = navstar_l4lb_ipvs_mgr:start_link(),
     "" = os:cmd("ipvsadm -C"),
-    [] =  minuteman_ipvs_mgr:get_services(Pid),
+    [] =  navstar_l4lb_ipvs_mgr:get_services(Pid),
     false = has_vip({4, 4, 4, 4}, 80),
-    ok = minuteman_ipvs_mgr:add_service(Pid, {4, 4, 4, 4}, 80),
+    ok = navstar_l4lb_ipvs_mgr:add_service(Pid, {4, 4, 4, 4}, 80),
     true = has_vip({4, 4, 4, 4}, 80).
 
 
@@ -87,18 +87,18 @@ routes() ->
 
 get_routes() ->
     {ok, Pid} = gen_netlink_client:start_link(?NETLINK_ROUTE),
-    {ok, Iface} = gen_netlink_client:if_nametoindex("minuteman"),
-    ordsets:to_list(minuteman_route_mgr:get_routes(Pid, Iface)).
+    {ok, Iface} = gen_netlink_client:if_nametoindex("navstar_l4lb"),
+    ordsets:to_list(navstar_l4lb_route_mgr:get_routes(Pid, Iface)).
 
 test_route_mgr(_Config) ->
-    os:cmd("ip link add minuteman type dummy"),
-    {ok, Pid} = minuteman_route_mgr:start_link(),
+    os:cmd("ip link add navstar_l4lb type dummy"),
+    {ok, Pid} = navstar_l4lb_route_mgr:start_link(),
     [] = get_routes(),
-    minuteman_route_mgr:update_routes(Pid, [{1, 2, 3, 4}]),
-    R = "local 1.2.3.4 dev minuteman  scope host",
+    navstar_l4lb_route_mgr:update_routes(Pid, [{1, 2, 3, 4}]),
+    R = "local 1.2.3.4 dev navstar_l4lb  scope host",
     true = lists:member(R,  routes()),
     [{1, 2, 3, 4}] = get_routes(),
-    minuteman_route_mgr:update_routes(Pid, []),
+    navstar_l4lb_route_mgr:update_routes(Pid, []),
     false = lists:member(R,  routes()),
     [] = get_routes().
 

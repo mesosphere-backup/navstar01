@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 17. May 2016 5:06 PM
 %%%-------------------------------------------------------------------
--module(minuteman_lashup_vip_listener).
+-module(navstar_l4lb_lashup_vip_listener).
 -author("sdhillon").
 
 -behaviour(gen_server).
@@ -38,7 +38,7 @@
 ]).
 
 -include_lib("stdlib/include/ms_transform.hrl").
--include("minuteman.hrl").
+-include("navstar_l4lb.hrl").
 -include_lib("mesos_state/include/mesos_state.hrl").
 -include_lib("dns/include/dns.hrl").
 
@@ -101,8 +101,8 @@ start_link() ->
 init([]) ->
     ets_restart(name_to_ip),
     ets_restart(ip_to_name),
-    MinIP = ip_to_integer(minuteman_config:min_named_ip()),
-    MaxIP = ip_to_integer(minuteman_config:max_named_ip()),
+    MinIP = ip_to_integer(navstar_l4lb_config:min_named_ip()),
+    MaxIP = ip_to_integer(navstar_l4lb_config:max_named_ip()),
     MonitorRef = setup_monitor(),
     {ok, Ref} = lashup_kv_events_helper:start_link(ets:fun2ms(fun({?VIPS_KEY2}) -> true end)),
     State = #state{ref = Ref, max_ip_num = MaxIP, min_ip_num = MinIP, monitorRef = MonitorRef},
@@ -239,7 +239,7 @@ handle_value(VIPs0, State0 = #state{retry_timer = Timer}) ->
     VIPs1 = process_vips(VIPs0, State0),
     State1 = State0#state{vips = VIPs1},
     State2 = push_state_to_spartan(State1),
-    minuteman_lb_mgr:push_vips(VIPs1),
+    navstar_l4lb_mgr:push_vips(VIPs1),
     State2.
 
 cancel_retry_timer(Timer) when is_reference(Timer) ->

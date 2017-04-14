@@ -1,8 +1,8 @@
--module(minuteman_lashup_vip_listener_SUITE).
+-module(navstar_l4lb_lashup_vip_listener_SUITE).
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
--include("minuteman.hrl").
+-include("navstar_l4lb.hrl").
 
 
 %% root tests
@@ -29,26 +29,26 @@ end_per_suite(Config) ->
 
 init_per_testcase(test_uninitalized_table, Config) -> Config;
 init_per_testcase(_, Config) ->
-  application:set_env(minuteman, enable_networking, false),
-  {ok, _} = application:ensure_all_started(minuteman),
+  application:set_env(navstar_l4lb, enable_networking, false),
+  {ok, _} = application:ensure_all_started(navstar_l4lb),
   Config.
 
 end_per_testcase(test_uninitalized_table, _Config) -> ok;
 end_per_testcase(_, _Config) ->
-  ok = application:stop(minuteman),
+  ok = application:stop(navstar_l4lb),
   ok = application:stop(lashup),
   ok = application:stop(mnesia).
 
 test_uninitalized_table(_Config) ->
   IP = {10, 0, 1, 10},
-  [] = minuteman_lashup_vip_listener:lookup_vips([{ip, IP}]),
+  [] = navstar_l4lb_lashup_vip_listener:lookup_vips([{ip, IP}]),
   ok.
 
 lookup_failure(_Config) ->
   IP = {10, 0, 1, 10},
-  [{badmatch, IP}] = minuteman_lashup_vip_listener:lookup_vips([{ip, IP}]),
+  [{badmatch, IP}] = navstar_l4lb_lashup_vip_listener:lookup_vips([{ip, IP}]),
   Name = <<"foobar.marathon">>,
-  [{badmatch, Name}] = minuteman_lashup_vip_listener:lookup_vips([{name, Name}]),
+  [{badmatch, Name}] = navstar_l4lb_lashup_vip_listener:lookup_vips([{name, Name}]),
   ok.
 
 lookup_failure2(Config) ->
@@ -71,7 +71,7 @@ lookup_vip(_Config) ->
                                                        {{tcp, {name, {<<"de8b9dc86">>, <<"marathon">>}}, 6000},
                                                         riak_dt_orswot},
                                                        {add, {{10, 0, 1, 31}, {{10, 0, 1, 31}, 12998}}}}]}),
-  [] = minuteman_lashup_vip_listener:lookup_vips([]),
-  [{ip, IP}] = minuteman_lashup_vip_listener:lookup_vips([{name, <<"de8b9dc86.marathon">>}]),
-  [{name, <<"de8b9dc86.marathon">>}] = minuteman_lashup_vip_listener:lookup_vips([{ip, IP}]),
+  [] = navstar_l4lb_lashup_vip_listener:lookup_vips([]),
+  [{ip, IP}] = navstar_l4lb_lashup_vip_listener:lookup_vips([{name, <<"de8b9dc86.marathon">>}]),
+  [{name, <<"de8b9dc86.marathon">>}] = navstar_l4lb_lashup_vip_listener:lookup_vips([{ip, IP}]),
   ok.

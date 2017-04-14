@@ -2,12 +2,12 @@
 %%% @author sdhillon
 %%% @copyright (C) 2016, <COMPANY>
 %%% @doc
-%%% Polls the local mesos agent if {minuteman, agent_polling_enabled} is true
+%%% Polls the local mesos agent if {navstar_l4lb, agent_polling_enabled} is true
 %%%
 %%% @end
 %%% Created : 16. May 2016 5:06 PM
 %%%-------------------------------------------------------------------
--module(minuteman_mesos_poller).
+-module(navstar_l4lb_mesos_poller).
 -author("sdhillon").
 
 -behaviour(gen_server).
@@ -32,7 +32,7 @@
 -export([handle_poll_state/2]).
 -endif.
 
--include("minuteman.hrl").
+-include("navstar_l4lb.hrl").
 -include_lib("mesos_state/include/mesos_state.hrl").
 -define(SERVER, ?MODULE).
 -define(VIP_PORT, "VIP_PORT").
@@ -93,7 +93,7 @@ start_link() ->
     {ok, State :: state()} | {ok, State :: state(), timeout() | hibernate} |
     {stop, Reason :: term()} | ignore).
 init([]) ->
-    PollInterval = minuteman_config:agent_poll_interval(),
+    PollInterval = navstar_l4lb_config:agent_poll_interval(),
     erlang:send_after(PollInterval, self(), poll),
     AgentIP = mesos_state:ip(),
     {ok, #state{agent_ip = AgentIP}}.
@@ -146,7 +146,7 @@ handle_cast(_Request, State) ->
     {stop, Reason :: term(), NewState :: state()}).
 handle_info(poll, State) ->
     NewState = maybe_poll(State),
-    PollInterval = minuteman_config:agent_poll_interval(),
+    PollInterval = navstar_l4lb_config:agent_poll_interval(),
     _Ref = erlang:send_after(PollInterval, self(), poll),
     {noreply, NewState};
 handle_info(_Info, State) ->
@@ -187,7 +187,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 maybe_poll(State) ->
-    case minuteman_config:agent_polling_enabled() of
+    case navstar_l4lb_config:agent_polling_enabled() of
         true ->
             poll(State);
         _ ->
@@ -195,7 +195,7 @@ maybe_poll(State) ->
     end.
 
 poll(State = #state{agent_ip = AgentIP}) ->
-    Port = minuteman_config:agent_port(),
+    Port = navstar_l4lb_config:agent_port(),
     case mesos_state_client:poll(AgentIP, Port) of
         {error, Reason} ->
             %% This might generate a lot of messages?
@@ -205,7 +205,7 @@ poll(State = #state{agent_ip = AgentIP}) ->
             handle_poll_state(MesosState, State)
     end.
 
-%% We've never polled the agent. Or minuteman_mesos_poller has restarted.
+%% We've never polled the agent. Or navstar_l4lb_mesos_poller has restarted.
 handle_poll_failure(State = #state{last_poll_time = undefined}) ->
     State#state{last_poll_time = erlang:monotonic_time()};
 handle_poll_failure(State = #state{last_poll_time = LastPollTime}) ->

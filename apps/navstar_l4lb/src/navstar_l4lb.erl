@@ -1,4 +1,4 @@
--module(minuteman_sup).
+-module(navstar_l4lb).
 
 -behaviour(supervisor).
 
@@ -24,10 +24,10 @@ start_link() ->
 
 get_children() ->
     [
-        ?CHILD(minuteman_network_sup, supervisor),
-        ?CHILD(minuteman_mesos_poller, worker),
-        ?CHILD(minuteman_metrics, worker),
-        ?CHILD(minuteman_lashup_publish, worker)
+        ?CHILD(navstar_l4lb_network_sup, supervisor),
+        ?CHILD(navstar_l4lb_mesos_poller, worker),
+        ?CHILD(navstar_l4lb_metrics, worker),
+        ?CHILD(navstar_l4lb_lashup_publish, worker)
     ].
 
 init([]) ->

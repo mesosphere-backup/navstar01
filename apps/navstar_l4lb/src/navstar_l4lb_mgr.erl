@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 18. Oct 2016 12:48 AM
 %%%-------------------------------------------------------------------
--module(minuteman_lb_mgr).
+-module(navstar_l4lb_mgr).
 -author("sdhillon").
 
 -behaviour(gen_statem).
@@ -16,7 +16,7 @@
 -endif.
 -include_lib("stdlib/include/ms_transform.hrl").
 -include_lib("gen_netlink/include/netlink.hrl").
--include("minuteman_lashup.hrl").
+-include("navstar_l4lb_lashup.hrl").
 -define(SERVER, ?MODULE).
 
 -record(state, {
@@ -61,8 +61,8 @@ start_link() ->
 init([]) ->
     {ok, KVRef} = lashup_kv_events_helper:start_link(ets:fun2ms(fun({?NODEMETADATA_KEY}) -> true end)),
     {ok, Ref} = lashup_gm_route_events:subscribe(),
-    {ok, IPVSMgr} = minuteman_ipvs_mgr:start_link(),
-    {ok, RouteMgr} = minuteman_route_mgr:start_link(),
+    {ok, IPVSMgr} = navstar_l4lb_ipvs_mgr:start_link(),
+    {ok, RouteMgr} = navstar_l4lb_route_mgr:start_link(),
     State = #state{route_mgr = RouteMgr, ipvs_mgr = IPVSMgr, route_events_ref = Ref, kv_ref = KVRef},
     {ok, notree, State}.
 
@@ -129,12 +129,12 @@ do_reconcile(VIPs, State0) ->
 %% TODO: Refactor
 do_reconcile_routes(VIPs, #state{route_mgr = RouteMgr}) ->
     ExpectedIPs = ordsets:from_list([VIP || {{_Proto, VIP, _Port}, _Backends} <- VIPs]),
-    minuteman_route_mgr:update_routes(RouteMgr, ExpectedIPs).
+    navstar_l4lb_route_mgr:update_routes(RouteMgr, ExpectedIPs).
 
-%% Converts IPVS service / dests into our normal minuteman ones
+%% Converts IPVS service / dests into our normal navstar_l4lb ones
 normalize_services_and_dests({Service0, Destinations0}) ->
-    Service1 = minuteman_ipvs_mgr:service_address(Service0),
-    Destinations1 = lists:map(fun minuteman_ipvs_mgr:destination_address/1, Destinations0),
+    Service1 = navstar_l4lb_ipvs_mgr:service_address(Service0),
+    Destinations1 = lists:map(fun navstar_l4lb_ipvs_mgr:destination_address/1, Destinations0),
     Destinations2 = lists:usort(Destinations1),
     {Service1, Destinations2}.
 
@@ -153,24 +153,24 @@ apply_diff({ServicesToAdd, ServicesToRemove, ServicesToModify}, State) ->
 modify_service({Protocol, IP, Port}, BEAdd, BERemove, #state{ipvs_mgr = IPVSMgr}) ->
     lists:foreach(
         fun({_AgentIP, {BEIP, BEPort}}) ->
-                minuteman_ipvs_mgr:add_dest(IPVSMgr, IP, Port, BEIP, BEPort, Protocol)
+                navstar_l4lb_ipvs_mgr:add_dest(IPVSMgr, IP, Port, BEIP, BEPort, Protocol)
         end,
         BEAdd),
     lists:foreach(
         fun({_AgentIP, {BEIP, BEPort}}) ->
-                minuteman_ipvs_mgr:remove_dest(IPVSMgr, IP, Port, BEIP, BEPort, Protocol)
+                navstar_l4lb_ipvs_mgr:remove_dest(IPVSMgr, IP, Port, BEIP, BEPort, Protocol)
         end,
         BERemove).
 
 
 remove_service({Protocol, IP, Port}, #state{ipvs_mgr = IPVSMgr}) ->
-    minuteman_ipvs_mgr:remove_service(IPVSMgr, IP, Port, Protocol).
+    navstar_l4lb_ipvs_mgr:remove_service(IPVSMgr, IP, Port, Protocol).
 
 add_service({Protocol, IP, Port}, BEs, #state{ipvs_mgr = IPVSMgr}) ->
-    minuteman_ipvs_mgr:add_service(IPVSMgr, IP, Port, Protocol),
+    navstar_l4lb_ipvs_mgr:add_service(IPVSMgr, IP, Port, Protocol),
     lists:foreach(
       fun({_AgentIP, {BEIP, BEPort}}) ->
-              minuteman_ipvs_mgr:add_dest(IPVSMgr, IP, Port, BEIP, BEPort, Protocol)
+              navstar_l4lb_ipvs_mgr:add_dest(IPVSMgr, IP, Port, BEIP, BEPort, Protocol)
       end,
       BEs).
 
@@ -178,8 +178,8 @@ process_reachability(VIPs0, State) ->
     lists:map(fun({VIP, BEs0}) -> {VIP, reachable_backends(BEs0, State)} end, VIPs0).
 
 installed_state(#state{ipvs_mgr = IPVSMgr}) ->
-    Services = minuteman_ipvs_mgr:get_services(IPVSMgr),
-    ServicesAndDests0 = [{Service, minuteman_ipvs_mgr:get_dests(IPVSMgr, Service)} || Service <- Services],
+    Services = navstar_l4lb_ipvs_mgr:get_services(IPVSMgr),
+    ServicesAndDests0 = [{Service, navstar_l4lb_ipvs_mgr:get_dests(IPVSMgr, Service)} || Service <- Services],
     ServicesAndDests1 = lists:map(fun normalize_services_and_dests/1, ServicesAndDests0),
     lists:usort(ServicesAndDests1).
 

@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 24. Oct 2016 11:42 AM
 %%%-------------------------------------------------------------------
--module(minuteman_metrics).
+-module(navstar_l4lb_metrics).
 -author("Anatoly Yakovenko").
 
 -include_lib("telemetry/include/telemetry.hrl").
@@ -95,12 +95,12 @@ terminate(_Reason, _State = #state{}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-%% TODO: borrowed from minuteman, should probably be a util somewhere
+%% TODO: borrowed from navstar_l4lb, should probably be a util somewhere
 -spec(splay_ms() -> integer()).
 splay_ms() ->
-    MsPerMinute = minuteman_config:metrics_interval_seconds() * 1000,
+    MsPerMinute = navstar_l4lb_config:metrics_interval_seconds() * 1000,
     NextMinute = -1 * erlang:monotonic_time(milli_seconds) rem MsPerMinute,
-    SplayMS = minuteman_config:metrics_splay_seconds() * 1000,
+    SplayMS = navstar_l4lb_config:metrics_splay_seconds() * 1000,
     FlooredSplayMS = max(1, SplayMS),
     Splay = rand:uniform(FlooredSplayMS),
     NextMinute + Splay.
@@ -108,8 +108,8 @@ splay_ms() ->
 %% implementation
 -spec(update_connections(conn_map(), conn_map()) -> {conn_map(), backend_conns()}).
 update_connections(OldConns, Conns) ->
-    Splay = minuteman_config:metrics_splay_seconds(),
-    Interval = minuteman_config:metrics_interval_seconds(),
+    Splay = navstar_l4lb_config:metrics_splay_seconds(),
+    Interval = navstar_l4lb_config:metrics_interval_seconds(),
     PollDelay = (Splay + Interval),
     OnlyNewConns = new_connections(PollDelay, OldConns, Conns),
     Parsed = lists:map(fun ip_vs_conn:parse/1, maps:to_list(OnlyNewConns)),
@@ -216,12 +216,12 @@ apply_p99(C = #ip_vs_conn{dst_ip = IP, dst_port = Port,
 named_tags(IIP, Port, IVIP, VIPPort) ->
     IP = int_to_ip(IIP),
     VIP = int_to_ip(IVIP),
-    case minuteman_lashup_vip_listener:lookup_vips([{ip, VIP}]) of
+    case navstar_l4lb_lashup_vip_listener:lookup_vips([{ip, VIP}]) of
         [{name, VIPName}] -> #{vip => fmt_ip_port(VIP, VIPPort), backend => fmt_ip_port(IP, Port), name => VIPName};
         _ -> #{vip => fmt_ip_port(VIP, VIPPort), backend => fmt_ip_port(IP, Port)}
     end.
 
-int_to_ip(Int) -> minuteman_lashup_vip_listener:integer_to_ip(Int).
+int_to_ip(Int) -> navstar_l4lb_lashup_vip_listener:integer_to_ip(Int).
 
 -spec(fmt_ip_port(IP :: inet:ip4_address(), Port :: inet:port_number()) -> binary()).
 fmt_ip_port(IP, Port) ->

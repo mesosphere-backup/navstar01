@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 12. Feb 2016 3:14 PM
 %%%-------------------------------------------------------------------
--module(minuteman_lashup_publish).
+-module(navstar_l4lb_lashup_publish).
 -author("sdhillon").
 
 -behaviour(gen_server).
@@ -27,7 +27,7 @@
 -record(state, {lashup_gm_monitor = erlang:error() :: reference()}).
 -type state() :: #state{}.
 
--include("minuteman_lashup.hrl").
+-include("navstar_l4lb_lashup.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 %%%===================================================================

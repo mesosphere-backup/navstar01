@@ -1,4 +1,4 @@
--module(minuteman_lb_mgr_SUITE).
+-module(navstar_l4lb_mgr_SUITE).
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
@@ -21,15 +21,15 @@ end_per_suite(Config) ->
 
 test_normalize(Config) ->
       PrivateDir = ?config(priv_dir, Config),
-      application:set_env(minuteman, agent_dets_basedir, PrivateDir),
+      application:set_env(navstar_l4lb, agent_dets_basedir, PrivateDir),
       case os:cmd("id -u") of
         "0\n" ->
           ok;
         _ ->
-          application:set_env(minuteman, enable_networking, false)
+          application:set_env(navstar_l4lb, enable_networking, false)
       end,
-      {ok, _} = application:ensure_all_started(minuteman),
-    Normalized = minuteman_lb_mgr:normalize_services_and_dests({[{address_family, 2},
+      {ok, _} = application:ensure_all_started(navstar_l4lb),
+    Normalized = navstar_l4lb_mgr:normalize_services_and_dests({[{address_family, 2},
       {protocol, 6},
       {address, <<11, 197, 245, 133, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>},
       {port, 9042},
@@ -108,6 +108,6 @@ test_normalize(Config) ->
                   [{{10, 10, 0, 83}, 9042},
                    {{10, 10, 0, 248}, 9042},
                    {{10, 10, 0, 253}, 9042}]},
-    ok = application:stop(minuteman),
+    ok = application:stop(navstar_l4lb),
     ok = application:stop(lashup),
     ok = application:stop(mnesia).

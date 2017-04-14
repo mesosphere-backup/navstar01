@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 08. Dec 2015 8:58 PM
 %%%-------------------------------------------------------------------
--module(minuteman_config).
+-module(navstar_l4lb_config).
 -author("sdhillon").
 -author("Tyler Neely").
 
@@ -18,7 +18,7 @@
   agent_port/0,
   min_named_ip/0,
   max_named_ip/0,
-  minuteman_iface/0,
+  navstar_l4lb_iface/0,
   metrics_interval_seconds/0,
   metrics_splay_seconds/0
   ]).
@@ -29,7 +29,7 @@ metrics_interval_seconds() ->
 metrics_splay_seconds() ->
   application:get_env(minuteman, metrics_interval_seconds, 2).
 
-minuteman_iface() ->
+navstar_l4lb_iface() ->
   application:get_env(minuteman, iface, "minuteman").
 
 agent_poll_interval() ->

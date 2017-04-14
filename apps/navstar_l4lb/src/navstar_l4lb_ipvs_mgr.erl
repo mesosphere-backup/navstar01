@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 01. Nov 2016 7:35 AM
 %%%-------------------------------------------------------------------
--module(minuteman_ipvs_mgr).
+-module(navstar_l4lb_ipvs_mgr).
 -author("sdhillon").
 
 -behaviour(gen_server).

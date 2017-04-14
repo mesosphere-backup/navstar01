@@ -1,4 +1,4 @@
--module(minuteman_restart_SUITE).
+-module(navstar_l4lb_restart_SUITE).
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
@@ -21,18 +21,18 @@ end_per_suite(Config) ->
 
 test_restart(Config) ->
   PrivateDir = ?config(priv_dir, Config),
-  application:set_env(minuteman, agent_dets_basedir, PrivateDir),
+  application:set_env(navstar_l4lb, agent_dets_basedir, PrivateDir),
   case os:cmd("id -u") of
     "0\n" ->
       ok;
     _ ->
-      application:set_env(minuteman, enable_networking, false)
+      application:set_env(navstar_l4lb, enable_networking, false)
   end,
-  {ok, _} = application:ensure_all_started(minuteman),
-  ok = application:stop(minuteman),
-  {ok, _} = application:ensure_all_started(minuteman),
-  ok = application:stop(minuteman),
-  {ok, _} = application:ensure_all_started(minuteman),
-  ok = application:stop(minuteman),
+  {ok, _} = application:ensure_all_started(navstar_l4lb),
+  ok = application:stop(navstar_l4lb),
+  {ok, _} = application:ensure_all_started(navstar_l4lb),
+  ok = application:stop(navstar_l4lb),
+  {ok, _} = application:ensure_all_started(navstar_l4lb),
+  ok = application:stop(navstar_l4lb),
   ok = application:stop(lashup),
   ok = application:stop(mnesia).

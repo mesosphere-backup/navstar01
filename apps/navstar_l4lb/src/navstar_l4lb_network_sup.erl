@@ -6,13 +6,13 @@
 %%% @end
 %%% Created : 15. Dec 2015 2:56 PM
 %%%-------------------------------------------------------------------
--module(minuteman_network_sup).
+-module(navstar_l4lb_network_sup).
 -author("sdhillon").
 
 
 -behaviour(supervisor).
 
--include("minuteman.hrl").
+-include("navstar_l4lb.hrl").
 %% API
 -export([start_link/0]).
 
@@ -30,16 +30,16 @@ start_link() ->
 
 
 maybe_ipvs_child() ->
-  case minuteman_config:networking() of
+  case navstar_l4lb_config:networking() of
     true ->
-       [?CHILD(minuteman_lb_mgr, worker)];
+       [?CHILD(navstar_l4lb_mgr, worker)];
     false ->
       []
   end.
 
 init([]) ->
   Children = maybe_ipvs_child () ++ [
-    ?CHILD(minuteman_lashup_vip_listener, worker)
+    ?CHILD(navstar_l4lb_lashup_vip_listener, worker)
   ],
   {ok,
     {

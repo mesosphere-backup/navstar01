@@ -1,4 +1,4 @@
--module(minuteman_app).
+-module(navstar_l4lb_app).
 
 -behaviour(application).
 
@@ -12,17 +12,17 @@
 
 start(_StartType, _StartArgs) ->
     load_config_files(),
-    maybe_start_minuteman().
+    maybe_start_l4lb().
 
 stop(_State) ->
     ok.
 
-maybe_start_minuteman() ->
-    case application:get_env(navstar, enable_lb, false) of
+maybe_start_l4lb() ->
+    case application:get_env(navstar, enable_lb, true) of
         false ->
             ok;
         true ->
-            minuteman_sup:start_link()
+            navstar_l4lb:start_link()
     end.
 
 load_config_files() ->

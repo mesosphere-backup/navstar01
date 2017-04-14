@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 02. Nov 2016 9:36 AM
 %%%-------------------------------------------------------------------
--module(minuteman_route_mgr).
+-module(navstar_l4lb_route_mgr).
 -author("sdhillon").
 
 -behaviour(gen_server).

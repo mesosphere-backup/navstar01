@@ -1,8 +1,8 @@
-{application, minuteman,
+{application, navstar_l4lb,
  [
-  {description, "Minuteman Distributed Load Balancer"},
+  {description, "A Distributed Load Balancer"},
   {vsn, "1"},
-  {maintainers, ["Sargun Dhillon <sargun@mesosphere.com", "Tyler Neely <tyler@mesosphere.com>"]},
+  {maintainers, ["Deepak Goel <dgoel@mesosphere.com>"]},
   {licenses, ["Apache"]},
   {registered, []},
   {applications, [
@@ -20,6 +20,6 @@
                   gen_netlink,
                   mesos_state
                  ]},
-  {mod, { minuteman_app, []}},
+  {mod, { navstar_l4lb_app, []}},
   {env, []}
  ]}.
