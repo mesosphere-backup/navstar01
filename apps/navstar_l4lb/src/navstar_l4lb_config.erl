@@ -24,35 +24,35 @@
   ]).
 
 metrics_interval_seconds() ->
-  application:get_env(minuteman, metrics_interval_seconds, 20).
+  application:get_env(navstar_l4lb, metrics_interval_seconds, 20).
 
 metrics_splay_seconds() ->
-  application:get_env(minuteman, metrics_interval_seconds, 2).
+  application:get_env(navstar_l4lb, metrics_interval_seconds, 2).
 
 navstar_l4lb_iface() ->
-  application:get_env(minuteman, iface, "minuteman").
+  application:get_env(navstar_l4lb, iface, "minuteman").
 
 agent_poll_interval() ->
-  application:get_env(minuteman, agent_poll_interval, 2000).
+  application:get_env(navstar_l4lb, agent_poll_interval, 2000).
 
 networking() ->
-  application:get_env(minuteman, enable_networking, true).
+  application:get_env(navstar_l4lb, enable_networking, true).
 
 agent_polling_enabled() ->
-  application:get_env(minuteman, agent_polling_enabled, true).
+  application:get_env(navstar_l4lb, agent_polling_enabled, true).
 
 agent_port() ->
-  application:get_env(minuteman, agent_port, 5051).
+  application:get_env(navstar_l4lb, agent_port, 5051).
 
 -spec(min_named_ip() -> inet:ip4_address()).
 min_named_ip() ->
-  application:get_env(minuteman, min_named_ip, {11, 0, 0, 0}).
+  application:get_env(navstar_l4lb, min_named_ip, {11, 0, 0, 0}).
 
 -spec(max_named_ip() -> inet:ip4_address()).
 -ifndef(TEST).
 max_named_ip() ->
-  application:get_env(minuteman, max_named_ip, {11, 255, 255, 254}).
+  application:get_env(navstar_l4lb, max_named_ip, {11, 255, 255, 254}).
 -else.
 max_named_ip() ->
-  application:get_env(minuteman, max_named_ip, {11, 0, 0, 254}).
+  application:get_env(navstar_l4lb, max_named_ip, {11, 0, 0, 254}).
 -endif.
