@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    navstar_l4lb_sup:start_link([application:get_env(navstar_l4lb, enable, true)]).
+    navstar_l4lb_sup:start_link([application:get_env(navstar_l4lb, enable_lb, true)]).
 
 stop(_State) ->
     ok.
