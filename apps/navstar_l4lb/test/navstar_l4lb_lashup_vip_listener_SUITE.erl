@@ -29,12 +29,15 @@ end_per_suite(Config) ->
 
 init_per_testcase(test_uninitalized_table, Config) -> Config;
 init_per_testcase(_, Config) ->
+  meck:new(navstar_l4lb_lashup_vip_listener, [passthrough]),
+  meck:expect(navstar_l4lb_lashup_vip_listener, setup_monitor, fun() -> ok end),
   application:set_env(navstar_l4lb, enable_networking, false),
   {ok, _} = application:ensure_all_started(navstar_l4lb),
   Config.
 
 end_per_testcase(test_uninitalized_table, _Config) -> ok;
 end_per_testcase(_, _Config) ->
+  meck:unload(navstar_l4lb_lashup_vip_listener),
   ok = application:stop(navstar_l4lb),
   ok = application:stop(lashup),
   ok = application:stop(mnesia).
