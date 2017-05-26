@@ -15,6 +15,7 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
+    navstar_app:load_config_files(navstar_overlay),
     navstar_overlay_sup:start_link([application:get_env(navstar_overlay, enable_overlay, true)]).
 
 stop(_State) ->
