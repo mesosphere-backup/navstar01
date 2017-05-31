@@ -18,6 +18,7 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
+    navstar_app:load_config_files(navstar_rest),
     setup_cowboy(),
     navstar_rest_sup:start_link().
 
