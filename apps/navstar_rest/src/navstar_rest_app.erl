@@ -33,7 +33,8 @@ setup_cowboy() ->
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/lashup/kv/[...]", navstar_rest_lashup_handler, []},
-            {"/lashup/key", navstar_rest_key_handler, []}
+            {"/lashup/key", navstar_rest_key_handler, []},
+            {"/dns/[...]", navstar_rest_dns_handler, []}
         ]}
     ]),
     Ip = application:get_env(navstar, ip, {127, 0, 0, 1}),
