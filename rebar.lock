@@ -120,5 +120,5 @@
   0},
  {<<"telemetry">>,
   {git,"git://github.com/dcos/telemetry-net.git",
-       {ref,"31b7a478ccfd2c0789360bb84a4cad4972d16897"}},
+       {ref,"9757ac2e9509529ddc466e4bd58a4952328a484d"}},
   0}].

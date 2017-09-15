@@ -42,7 +42,7 @@ start_link() ->
     {stop, Reason :: term()} | ignore).
 init([]) ->
     process_flag(trap_exit, true),
-    erlang:send_after(splay_ms(), self(), push_metrics),
+    erlang:send_after(telemetry_forwarder:splay_ms(), self(), push_metrics),
     {ok, #state{}}.
 
 -spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
@@ -69,7 +69,7 @@ handle_cast(_Request, State) ->
     {stop, Reason :: term(), NewState :: #state{}}).
 handle_info(push_metrics, State = #state{}) ->
     ok = ip_vs_conn_monitor:get_connections(update_connections),
-    erlang:send_after(splay_ms(), self(), push_metrics),
+    erlang:send_after(telemetry_forwarder:splay_ms(), self(), push_metrics),
     {noreply, State};
 handle_info({update_metrics, Metrics}, State = #state{}) ->
     update_metrics(State#state.backend_conns, Metrics),
@@ -94,16 +94,6 @@ terminate(_Reason, _State = #state{}) ->
     {ok, NewState :: #state{}} | {error, Reason :: term()}).
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-%% TODO: borrowed from navstar_l4lb, should probably be a util somewhere
--spec(splay_ms() -> integer()).
-splay_ms() ->
-    MsPerMinute = navstar_l4lb_config:metrics_interval_seconds() * 1000,
-    NextMinute = -1 * erlang:monotonic_time(milli_seconds) rem MsPerMinute,
-    SplayMS = navstar_l4lb_config:metrics_splay_seconds() * 1000,
-    FlooredSplayMS = max(1, SplayMS),
-    Splay = rand:uniform(FlooredSplayMS),
-    NextMinute + Splay.
 
 %% implementation
 -spec(update_connections(conn_map(), conn_map()) -> {conn_map(), backend_conns()}).
