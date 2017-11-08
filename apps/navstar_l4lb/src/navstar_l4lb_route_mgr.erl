@@ -213,11 +213,11 @@ route_msg_oif(Msg) -> proplists:get_value(oif, element(10, Msg)).
 route_msg_dst(Msg) -> proplists:get_value(dst, element(10, Msg)).
 
 handle_add_routes(RoutesToAdd, Namespace, State) ->
-    lager:info("Adding routes to Namespace ~p ~p", [Namespace, RoutesToAdd]),
+    lager:info("Namespace: ~p, Adding routes: ~p", [Namespace, RoutesToAdd]),
     lists:foreach(fun(Route) -> add_route(Route, Namespace, State) end, RoutesToAdd).
 
 handle_remove_routes(RoutesToDelete, Namespace, State) ->
-    lager:info("Removing routes from Namespace ~p ~p", [Namespace, RoutesToDelete]),
+    lager:info("Namespace: ~p, Removing routes: ~p", [Namespace, RoutesToDelete]),
     lists:foreach(fun(Route) -> remove_route(Route, Namespace, State) end, RoutesToDelete).
  
 add_route(Dst, Namespace, #state{netns = NetnsMap}) ->
