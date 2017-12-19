@@ -33,6 +33,7 @@
 -endif.
 
 -include("navstar_l4lb.hrl").
+-include("navstar_l4lb_lashup.hrl").
 -include_lib("mesos_state/include/mesos_state.hrl").
 -define(SERVER, ?MODULE).
 -define(VIP_PORT, "VIP_PORT").
@@ -94,6 +95,7 @@ start_link() ->
     {stop, Reason :: term()} | ignore).
 init([]) ->
     PollInterval = navstar_l4lb_config:agent_poll_interval(),
+    erlang:send_after(5000, self(), k8s_poller),
     erlang:send_after(PollInterval, self(), poll),
     AgentIP = mesos_state:ip(),
     {ok, #state{agent_ip = AgentIP}}.
@@ -149,6 +151,9 @@ handle_info(poll, State) ->
     PollInterval = navstar_l4lb_config:agent_poll_interval(),
     _Ref = erlang:send_after(PollInterval, self(), poll),
     {noreply, NewState};
+handle_info(k8s_poller, State) ->
+    maybe_start_k8s_poller(State),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -186,6 +191,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+maybe_start_k8s_poller(#state{agent_ip = AgentIP}) ->
+   KubeMetaData = lashup_kv:value(?KUBEMETADATA_KEY),
+   KubeMetaDataList = orddict:from_list(KubeMetaData),
+   case orddict:find(?LWW_REG(?KUBEAPIKEY), KubeMetaDataList) of
+       {ok, AgentIP} -> navstar_l4lb_k8s_poller:start();
+       _ -> ok
+   end.
+ 
 maybe_poll(State) ->
     case navstar_l4lb_config:agent_polling_enabled() of
         true ->
@@ -221,7 +234,10 @@ handle_poll_failure(_TimeSinceLastPoll, State) ->
 
 -spec(handle_poll_state(mesos_state_client:mesos_agent_state(), state()) -> state()).
 handle_poll_state(MesosState, State) ->
-    VIPBEs = collect_vips(MesosState, State),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    maybe_poll_k8s(Tasks1, State),
+    VIPBEs = collect_vips(Tasks1, State),
     handle_poll_changes(VIPBEs, State#state.agent_ip),
     State#state{last_poll_time = erlang:monotonic_time()}.
 
@@ -316,23 +332,22 @@ unflatten_vips(VIPBes) ->
         ),
     orddict:map(fun(_Key, Value) -> ordsets:from_list(Value) end, VIPBEsDict).
 
--spec(collect_vips(MesosState :: mesos_state_client:mesos_agent_state(), State :: state()) ->
+filter_tasks(Tasks) ->
+    lists:filter(
+        fun
+           (#task{statuses = [_TaskStatus = #task_status{healthy = false}|_]}) ->
+               false;
+           (#task{state = running}) ->
+               true;
+           (_) ->
+               false
+        end, Tasks).    
+
+-spec(collect_vips(Tasks :: mesos_state_client:task(), State :: state()) ->
     [{VIP :: protocol_vip(), [Backend :: ip_ip_port()]}]).
-collect_vips(MesosState, _State) ->
-    Tasks = mesos_state_client:tasks(MesosState),
-    Tasks1 =
-        lists:filter(
-            fun
-                (#task{statuses = [_TaskStatus = #task_status{healthy = false}|_]}) ->
-                    false;
-                (#task{state = running}) ->
-                    true;
-                (_) ->
-                    false
-            end,
-            Tasks),
-    VIPBEs = collect_vips_from_tasks_labels(Tasks1, ordsets:new()),
-    VIPBEs1 = collect_vips_from_discovery_info(Tasks1, VIPBEs),
+collect_vips(Tasks, _State) ->
+    VIPBEs = collect_vips_from_tasks_labels(Tasks, ordsets:new()),
+    VIPBEs1 = collect_vips_from_discovery_info(Tasks, VIPBEs),
     VIPBes2 = lists:usort(VIPBEs1),
     unflatten_vips(VIPBes2).
 
@@ -512,6 +527,50 @@ string_to_integer(Str) ->
     {Int, _Rest} = string:to_integer(Str),
     Int.
 
+maybe_poll_k8s(Tasks, State) ->
+    case filter_k8s_apiserver_tasks(Tasks) of
+        [] -> ok;
+        _ -> maybe_poll_k8s2(State)
+    end.
+
+maybe_poll_k8s2(State) ->
+    case check_lashup() of
+        not_present -> 
+            update_lashup(State),
+            navstar_l4lb_k8s_poller:start(); 
+        _ -> ok
+    end.
+
+update_lashup(State) ->
+    AgentIP = State#state.agent_ip,
+    Ops = [{update, ?LWW_REG(?KUBEAPIKEY), {assign, AgentIP, erlang:system_time(nano_seconds)}}],
+    {ok, _} = lashup_kv:request_op(?KUBEMETADATA_KEY, {update, Ops}). 
+
+check_ip(IP) ->
+    NodeMetadata = lashup_kv:value(?NODEMETADATA_KEY),
+    NodeMetadataDict = orddict:from_list(NodeMetadata),
+    case orddict:find(?LWW_REG(IP), NodeMetadataDict) of
+        {ok, _} -> present;
+        _ -> not_present
+    end.
+
+check_lashup() ->
+    KubeMetaData = lashup_kv:value(?KUBEMETADATA_KEY),
+    KubeMetaDataList = orddict:from_list(KubeMetaData),
+    case orddict:find(?LWW_REG(?KUBEAPIKEY), KubeMetaDataList) of
+        {ok, IP} -> check_ip(IP);
+        _ -> not_present
+    end.
+
+filter_k8s_apiserver_tasks(Tasks) ->
+    lists:filter(
+        fun
+            (#task{name = <<"kube-apiserver", _Rest/binary>>}) ->
+                true;
+            (_) ->
+                false
+        end, Tasks).
+    
 -ifdef(TEST).
 fake_state() ->
     #state{agent_ip = {0, 0, 0, 0}}.
@@ -519,7 +578,9 @@ fake_state() ->
 overlay_vips_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/overlay.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
            {tcp, {1, 2, 3, 4}, 5000},
@@ -533,7 +594,9 @@ overlay_vips_test() ->
 two_healthcheck_free_vips_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/two-healthcheck-free-vips-state.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {4, 3, 2, 1}, 1234},
@@ -555,7 +618,9 @@ two_healthcheck_free_vips_test() ->
 state2_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/state2.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {1, 2, 3, 4}, 5000},
@@ -569,7 +634,9 @@ state2_test() ->
 state3_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/state3.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {1, 2, 3, 4}, 5000},
@@ -583,7 +650,9 @@ state3_test() ->
 state4_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/state4.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {1, 2, 3, 4}, 5000},
@@ -597,7 +666,9 @@ state4_test() ->
 state5_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/state5.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {1, 2, 3, 4}, 5000},
@@ -617,7 +688,9 @@ state5_test() ->
 di_state_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/state_di.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {1, 2, 3, 4}, 8080},
@@ -632,7 +705,9 @@ di_state_test() ->
 named_vips_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/named-base-vips.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [
         {
             {tcp, {name, {<<"merp">>, <<"marathon">>}}, 5000},
@@ -646,7 +721,9 @@ named_vips_test() ->
 missing_port_test() ->
     {ok, Data} = file:read_file("apps/navstar_l4lb/testdata/missing-port.json"),
     {ok, MesosState} = mesos_state_client:parse_response(Data),
-    VIPBes = collect_vips(MesosState, fake_state()),
+    Tasks0 = mesos_state_client:tasks(MesosState),
+    Tasks1 = filter_tasks(Tasks0),
+    VIPBes = collect_vips(Tasks1, fake_state()),
     Expected = [],
     ?assertEqual(Expected, VIPBes).
 

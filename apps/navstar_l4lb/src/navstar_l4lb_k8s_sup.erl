@@ -1,20 +1,20 @@
 %%%-------------------------------------------------------------------
-%%% @author sdhillon
-%%% @copyright (C) 2015, <COMPANY>
+%%% @author dgoel
+%%% @copyright (C) 2017, <COMPANY>
 %%% @doc
 %%%
 %%% @end
-%%% Created : 15. Dec 2015 2:56 PM
+%%% Created : 19. Dec 2017 3:56 PM
 %%%-------------------------------------------------------------------
--module(navstar_l4lb_network_sup).
--author("sdhillon").
-
+-module(navstar_l4lb_k8s_sup).
+-author("dgoel").
 
 -behaviour(supervisor).
 
--include("navstar_l4lb.hrl").
 %% API
--export([start_link/0]).
+-export([start_link/0,
+         start_child/1,
+         terminate_child/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -28,19 +28,15 @@
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+%% @doc Start a child.
+start_child(Args) ->
+    supervisor:start_child(?MODULE, Args).
 
-maybe_ipvs_child() ->
-  case navstar_l4lb_config:networking() of
-    true ->
-       [?CHILD(navstar_l4lb_mgr, worker)];
-    false ->
-      []
-  end.
+%% @doc Stop a child immediately
+terminate_child(Supervisor, Pid) ->
+    supervisor:terminate_child(Supervisor, Pid).
+
 
 init([]) ->
-  Children = maybe_ipvs_child () ++ [
-    ?CHILD(navstar_l4lb_lashup_vip_listener, worker)
-  ],
-  
-  {ok, { {rest_for_one, 5, 10}, Children} }.
+  {ok, { {simple_one_for_one, 10, 10}, [?CHILD(navstar_l4lb_k8s_poller, worker)]} }.
 

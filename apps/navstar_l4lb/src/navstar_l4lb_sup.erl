@@ -26,8 +26,8 @@ get_children(false) ->
 get_children(true) ->
     [
         ?CHILD(navstar_l4lb_network_sup, supervisor),
+        ?CHILD(navstar_l4lb_k8s_sup, supervisor),
         ?CHILD(navstar_l4lb_mesos_poller, worker),
-        ?CHILD(navstar_l4lb_k8s_poller, worker),
         ?CHILD(navstar_l4lb_metrics, worker),
         ?CHILD(navstar_l4lb_lashup_publish, worker)
     ].

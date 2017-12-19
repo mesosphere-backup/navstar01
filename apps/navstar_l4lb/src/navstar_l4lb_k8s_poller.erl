@@ -14,7 +14,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start/0, start_link/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -25,12 +25,15 @@
     code_change/3]).
 
 -include("navstar_l4lb.hrl").
+-include("navstar_l4lb_lashup.hrl").
 
 -record(state, {
     agent_ip = erlang:error() :: inet:ip4_address(),
     uri = [] :: list(),
     last_poll_time = undefined :: integer() | undefined
 }).
+
+-define(WAIT, 5). %% in secs
 
 -type protocol() :: tcp | udp.
 -type vip_string() :: {name, {binary(), binary()}}.
@@ -49,7 +52,15 @@
 -type protocol_vip() :: {protocol(), Host :: inet:ip_address() | string(), inet:port_number()}.
 -type protocol_vip_orswot() :: {protocol_vip(), riak_dt_orswot}.
 
-
+start() ->
+    case navstar_l4lb_k8s_sup:start_child([]) of 
+        {ok, Pid} ->
+            {ok, Pid};
+        Error ->
+            lager:error("couldn't start K8s poller ~p", [Error]),
+            error
+    end. 
+                                        
 %%===================================================================
 %% API
 %%===================================================================
@@ -69,8 +80,7 @@ start_link() ->
 %% gen_server callbacks
 %%===================================================================
 init([]) ->
-    PollInterval = navstar_l4lb_config:agent_poll_interval(),
-    erlang:send_after(PollInterval, self(), poll),
+    erlang:send_after(?WAIT, self(), maybe_poll),
     AgentIP = mesos_state:ip(),
     URI = "http://apiserver-insecure.kubernetes.l4lb.thisdcos.directory:9000",
     {ok, #state{agent_ip = AgentIP, uri = URI}}.
@@ -81,13 +91,17 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Request, State) ->
     {noreply, State}.
 
-handle_info(poll, State) ->
-    NewState = case is_leader() of 
-                   true -> poll(State);
-                   false -> State
+handle_info(maybe_poll, State = #state{agent_ip = AgentIP}) ->
+    NewState = case check_lashup() of 
+                   AgentIP  -> 
+                       lager:error("Finally polling"),
+                       poll(State);
+                   _ -> 
+                       lager:error("I am not polling :("), 
+                       {stop, normal, state}
                end,
     PollInterval = navstar_l4lb_config:agent_poll_interval(),
-    erlang:send_after(PollInterval, self(), poll),
+    erlang:send_after(PollInterval, self(), maybe_poll),
     {noreply, NewState};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -101,20 +115,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%===================================================================
 %% Internal functions
 %%===================================================================
-is_leader() ->
-    {ok, IFAddrs} = inet:getifaddrs(),
-    case inet:getaddr("leader.mesos", inet) of
-        {ok, Addr} ->
-            is_leader(IFAddrs, Addr);
-        _ ->
-            false
+check_lashup() ->
+    KubeMetaData = lashup_kv:value(?KUBEMETADATA_KEY),
+    KubeMetaDataList = orddict:from_list(KubeMetaData),
+    case orddict:find(?LWW_REG(?KUBEAPIKEY), KubeMetaDataList) of
+        {ok, AgentIP} -> AgentIP;
+        Else -> Else
     end.
-
--spec(is_leader(IFAddrs :: [term()], Addr :: inet:ip4_address()) -> boolean()).
-is_leader(IFAddrs, Addr) ->
-    IfOpts = [IfOpt || {_IfName, IfOpt} <- IFAddrs],
-    lists:any(fun(IfOpt) -> lists:member({addr, Addr}, IfOpt) end, IfOpts).
-
+    
 poll(State = #state{uri = URI}) ->
     Path = "api/v1/services",
     case navstar_l4lb_k8s_client:get(URI, Path) of
