@@ -197,20 +197,25 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 handle_get_routes(Namespace, #state{netns = NetnsMap}) ->
-    handle_get_route2(maps:get(Namespace, NetnsMap)).
+    V4_Routes = handle_get_route2(inet, maps:get(Namespace, NetnsMap)),
+    V6_Routes = handle_get_route2(inet6, maps:get(Namespace, NetnsMap)),
+    ordsets:union(V4_Routes, V6_Routes).
 
-handle_get_route2(#params{pid = Pid, iface = Iface}) ->
+handle_get_route2(Family, #params{pid = Pid, iface = Iface}) ->
     Req = [{table, ?LOCAL_TABLE}, {oif, Iface}],
     {ok, Raw} = gen_netlink_client:rtnl_request(Pid, getroute, [match, root],
-                                                {inet, 0, 0, 0, 0, 0, 0, 0, [], Req}),
+                                                {Family, 0, 0, 0, 0, 0, 0, 0, [], Req}),
     Routes = [route_msg_dst(Msg) || #rtnetlink{msg = Msg} <- Raw,
-                                     Iface == route_msg_oif(Msg)],
-    lager:info("Get routes ~p ~p ~p", [Iface, Routes]),
+                                    navstar_l4lb_app:prefix_len(Family) == element(2, Msg),
+                                    Iface == route_msg_oif(Msg),
+                                    ?LOCAL_TABLE == route_msg_table(Msg)],
+    lager:info("Get routes ~p ~p", [Iface, Routes]),
     ordsets:from_list(Routes).
 
 %% see netlink.hrl for the element position
 route_msg_oif(Msg) -> proplists:get_value(oif, element(10, Msg)).
 route_msg_dst(Msg) -> proplists:get_value(dst, element(10, Msg)).
+route_msg_table(Msg) -> proplists:get_value(table, element(10, Msg)).
 
 handle_add_routes(RoutesToAdd, Namespace, State) ->
     lager:info("Namespace: ~p, Adding routes: ~p", [Namespace, RoutesToAdd]),
@@ -221,13 +226,15 @@ handle_remove_routes(RoutesToDelete, Namespace, State) ->
     lists:foreach(fun(Route) -> remove_route(Route, Namespace, State) end, RoutesToDelete).
  
 add_route(Dst, Namespace, #state{netns = NetnsMap}) ->
-    add_route2(Dst, Namespace, maps:get(Namespace, NetnsMap)).
+    Family = navstar_l4lb_app:family(Dst),
+    PrefixLen = navstar_l4lb_app:prefix_len(Family),
+    add_route(Family, Dst, PrefixLen, Namespace, maps:get(Namespace, NetnsMap)).
 
-add_route2(Dst, Namespace, #params{pid = Pid, iface = Iface}) ->
+add_route(Family, Dst, PrefixLen, Namespace, #params{pid = Pid, iface = Iface}) ->
     Msg = [{table, ?LOCAL_TABLE}, {dst, Dst}, {oif, Iface}],
     Route = {
-        inet,
-        _PrefixLen = 32,
+        Family,
+        _PrefixLen = PrefixLen,
         _SrcPrefixLen = 0,
         _Tos = 0,
         _Table = ?LOCAL_TABLE,
@@ -239,13 +246,15 @@ add_route2(Dst, Namespace, #params{pid = Pid, iface = Iface}) ->
     {ok, _} = gen_netlink_client:rtnl_request(Pid, newroute, [create, replace], Route).
 
 remove_route(Dst, Namespace, #state{netns = NetnsMap}) ->
-    remove_route2(Dst, Namespace, maps:get(Namespace, NetnsMap)).
+    Family = navstar_l4lb_app:family(Dst),
+    PrefixLen = navstar_l4lb_app:prefix_len(Family), 
+    remove_route(Family, Dst, PrefixLen, Namespace, maps:get(Namespace, NetnsMap)).
 
-remove_route2(Dst, Namespace, #params{pid = Pid, iface = Iface}) ->
+remove_route(Family, Dst, PrefixLen, Namespace, #params{pid = Pid, iface = Iface}) ->
     Msg = [{table, ?LOCAL_TABLE}, {dst, Dst}, {oif, Iface}],
     Route = {
-        inet,
-        _PrefixLen = 32,
+        Family,
+        _PrefixLen = PrefixLen,
         _SrcPrefixLen = 0,
         _Tos = 0,
         _Table = ?LOCAL_TABLE,

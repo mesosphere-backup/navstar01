@@ -1,3 +1,4 @@
+{"1.1.0",
 [{<<"base32">>,
   {git,"https://github.com/aetrion/base32_erlang.git",
        {ref,"40431a7480176b24863e18b92d9872e54c714df5"}},
@@ -58,10 +59,7 @@
   {git,"git://github.com/DeadZen/goldrush.git",
        {ref,"212299233c7e7eb63a97be2777e1c05ebaa58dbe"}},
   1},
- {<<"gpb">>,
-  {git,"https://github.com/tomas-abrahamsson/gpb.git",
-       {ref,"1dbc49f18d6d1979779aff47971dd02405cb509d"}},
-  0},
+ {<<"gpb">>,{pkg,<<"gpb">>,<<"3.27.4">>},0},
  {<<"inotify">>,
   {git,"https://github.com/goeldeepak/inotify.git",
        {ref,"d23d9d2bbcfe275ab0ece751db8c8658cfcba34a"}},
@@ -88,7 +86,7 @@
   0},
  {<<"mesos_state">>,
   {git,"https://github.com/dcos/mesos_state.git",
-       {ref,"abf5dfaf8dd3802f12bdecc6714c19819ae2de8b"}},
+       {ref,"8e552bfb9f521f3ebb4fd7a2085d2d03ff7829b5"}},
   0},
  {<<"parse_trans">>,
   {git,"git://github.com/uwiger/parse_trans.git",
@@ -121,4 +119,8 @@
  {<<"telemetry">>,
   {git,"git://github.com/dcos/telemetry-net.git",
        {ref,"31b7a478ccfd2c0789360bb84a4cad4972d16897"}},
-  0}].
+  0}]}.
+[
+{pkg_hash,[
+ {<<"gpb">>, <<"0BE08756A64A4A9F4E74E6E50ACE568CAD2577F52A9EB9D5985AA7A7E5D73BCB">>}]}
+].

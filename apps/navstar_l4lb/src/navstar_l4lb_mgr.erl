@@ -95,7 +95,7 @@ callback_mode() ->
 %% In the uninitialized state, we want to enumerate the VIPs that exist,
 %% and we want to delete the VIPs that aren't in the list
 %% Then we we redeliver the event for further processing
-%% VIPs are in the structure [{{protocol(), inet:ipv4_address(), port_num}, [{inet:ipv4_address(), port_num}]}]
+%% VIPs are in the structure [{{protocol(), inet:ip_address(), port_num}, [{inet:ip_address(), port_num}]}]
 %% [{{tcp,{1,2,3,4},80},[{{33,33,33,2},20320}]}]
 
 %% States go notree -> reconcile -> maintain
@@ -216,8 +216,11 @@ installed_state(Namespace, #state{ipvs_mgr = IPVSMgr}) ->
 
 %% Converts IPVS service / dests into our normal navstar_l4lb ones
 normalize_services_and_dests({Service0, Destinations0}) ->
-    Service1 = navstar_l4lb_ipvs_mgr:service_address(Service0),
-    Destinations1 = lists:map(fun navstar_l4lb_ipvs_mgr:destination_address/1, Destinations0),
+    {AddressFamily, Service1} = navstar_l4lb_ipvs_mgr:service_address(Service0),
+    Destinations1 = lists:map(
+                      fun(Dest) ->  
+                          navstar_l4lb_ipvs_mgr:destination_address(AddressFamily, Dest) 
+                      end, Destinations0),
     Destinations2 = lists:usort(Destinations1),
     {Service1, Destinations2}.
 

@@ -10,7 +10,10 @@
 -author("sdhillon").
 
 %% API
--export([masters/0, is_master/0, key/0]).
+-export([masters/0,
+         is_master/0,
+         key/0,
+         family/1]).
 -define(MASTERS_KEY, {masters, riak_dt_orswot}).
 
 
@@ -37,3 +40,8 @@ key() ->
         _ ->
             false
     end.
+
+family(IP) when size(IP) == 4 ->
+    inet;
+family(IP) when size(IP) == 8 ->
+    inet6.
