@@ -88,7 +88,7 @@
   0},
  {<<"minuteman">>,
   {git,"https://github.com/dcos/minuteman.git",
-       {ref,"f2e33acf06a2a4501947496c2216251b2d15f23a"}},
+       {ref,"070c19e528585656d5b37501a287fc064b18c940"}},
   0},
  {<<"parse_trans">>,
   {git,"git://github.com/uwiger/parse_trans.git",
