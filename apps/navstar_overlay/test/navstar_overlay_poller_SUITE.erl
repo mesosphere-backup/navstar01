@@ -55,13 +55,25 @@ unique_iprules_test(_Config) ->
     ok.
 
 start_get_kill_poller() ->
+    maybe_kill_poller(),
     {ok, Pid} = navstar_overlay_poller:start_link(),
-    {ok, Rules} =
+    {ok, Rules} =   
         try
             NetlinkPid = navstar_overlay_poller:netlink(),
             {ok, _Rules} = navstar_overlay_netlink:iprule_show(NetlinkPid)
         after
+            erlang:unregister(navstar_overlay_poller),
             erlang:unlink(Pid),
             erlang:exit(Pid, kill)
         end,
     ct:pal("Rules: ~p", [Rules]).
+
+maybe_kill_poller() ->
+    try
+        Pid = whereis(navstar_overlay_poller),
+        erlang:unregister(navstar_overlay_poller),
+        erlang:unlink(Pid),
+        erlang:exit(Pid, kill)
+    catch _:_ ->
+        ok
+    end.
