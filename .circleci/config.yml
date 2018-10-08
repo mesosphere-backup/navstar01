@@ -1,0 +1,93 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    working_directory: '~/navstar'
+    steps:
+      - checkout
+      - restore_cache:
+          key: otp-19.2.3
+      - run:
+          name: Building OTP
+          command: |
+              if [ -d ~/src/otp ]; then
+                  echo "Use pre-build OTP version"
+                  exit 0
+              fi
+
+              set -xe
+              ( mkdir -p ~/src && cd ~/src \
+                && git clone --branch maint-19 https://github.com/erlang/otp.git )
+              ( cd ~/src/otp \
+                && git checkout aa315e1cf1b79ab782e5b4c944595495ebf4e2f4 \
+                && ./otp_build autoconf \
+                && ./configure \
+                && make -j$(getconf _NPROCESSORS_ONLN) )
+      - save_cache:
+          key: otp-19.2.3
+          paths:
+            - ~/src/otp
+      - run:
+          name: Installing OTP
+          command: (cd ~/src/otp && sudo make install)
+      - run:
+          name: Installing libsodium
+          command: |
+              set -xe
+              curl -LO http://ppa.launchpad.net/chris-lea/libsodium/ubuntu/pool/main/libs/libsodium/libsodium13_1.0.3-1chl1~trusty1_amd64.deb
+              curl -LO http://ppa.launchpad.net/chris-lea/libsodium/ubuntu/pool/main/libs/libsodium/libsodium-dev_1.0.3-1chl1~trusty1_amd64.deb
+              sudo dpkg -i libsodium13_1.0.3-1chl1~trusty1_amd64.deb
+              sudo dpkg -i libsodium-dev_1.0.3-1chl1~trusty1_amd64.deb
+      - run:
+          name: Updating rebar3
+          command: ./rebar3 update
+      - run:
+          name: Fetching dependencies
+          command: ./rebar3 get-deps
+      - run:
+          name: Building
+          command: ./rebar3 compile
+      - run:
+          name: Building OTP release
+          command: ./rebar3 as prod release
+      - run:
+          name: Installing test dependencies
+          command: |
+              set -xe
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends \
+                  iproute2 dnsutils ipvsadm
+      - run:
+          name: Checking eunit tests
+          command: ./rebar3 eunit -v
+      - run:
+          name: Checking common tests
+          command: ./rebar3 ct -v
+      - run:
+          name: Checking common tests as root
+          command: sudo $(which escript) ./rebar3 ct -v
+      - run:
+          name: Running cross reference analysis
+          command: ./rebar3 xref
+      - run:
+          name: Running static analyzer
+          command: ./rebar3 dialyzer
+      - run:
+          name: Checking code style
+          command: ./rebar3 as lint lint
+      - run:
+          name: Performing coverage analysis
+          command: ./rebar3 as test cover
+      - run:
+          name: Generating cover report
+          command: ./rebar3 as test covertool generate
+      - run:
+          name: Installing codecov
+          command: pip install codecov
+      - run:
+          name: Sending cover report
+          command: |
+              codecov -X gcov -f _build/test/covertool/navstar.covertool.xml
+              codecov -X gcov -f _build/test/covertool/navstar_dns.covertool.xml
+              codecov -X gcov -f _build/test/covertool/navstar_overlay.covertool.xml
+              codecov -X gcov -f _build/test/covertool/navstar_rest.covertool.xml
