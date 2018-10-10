@@ -48,7 +48,8 @@ init_per_suite(0, Config) ->
   end,
   {ok, _} = application:ensure_all_started(cowboy),
   setup_cowboy(?OVERLAY_MODULE_PORT),
-  Config;
+  Config,
+  {skip, "DCOS_OSS-4286"};
 init_per_suite(_, _) ->
   {skip, "Not running as root"}.
 
