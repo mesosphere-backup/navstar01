@@ -271,7 +271,14 @@ rewrite_name(Else) ->
     Else.
 
 setup_monitor() ->
-    monitor(process, {erldns_zone_cache, spartan_name()}).
+    Process = {erldns_zone_cache, spartan_name()},
+    try
+        monitor(process, Process)
+    catch error:badarg ->
+        MonRef = make_ref(),
+        self() ! {'DOWN', MonRef, process, Process, noconnection},
+        MonRef
+    end.
 
 retry_spartan(State) ->
     push_state_to_spartan(State).
