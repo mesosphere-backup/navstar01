@@ -103,6 +103,7 @@ test_ip_cmds(Config) ->
 
     %% Test5: ip route replace
     DstIP = {192,168,65,91},
+    {ok, _} = navstar_overlay_netlink:ipaddr_replace(Pid, IP, PrefixLen, ?IFNAME),
     {ok, _} = navstar_overlay_netlink:iproute_replace(Pid, DstIP, 32, IP, 42),
     Entry5 = lists:flatten(io_lib:format("~s via ~s", [inet:ntoa(DstIP), IPStr])),
     Result5 = os:cmd("ip route show table 42"),
